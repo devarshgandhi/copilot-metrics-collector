@@ -2,6 +2,8 @@
 
 **Collect GitHub Copilot usage metrics for your organization in 10 minutes.**
 
+✨ **Updated February 2026** - Now using the latest GitHub Copilot Metrics API with enhanced data!
+
 ---
 
 ## 🚀 Quick Setup
@@ -23,7 +25,7 @@ sudo apt-get install -y jq  # Linux
    - **Homepage URL:** `https://github.com/YOUR_ORG`
    - **Webhook:** UNCHECK "Active"
 4. Under **"Organization permissions"** set:
-   - **Copilot Business Metrics:** `Read-only`
+   - **Organization Copilot metrics:** `Read-only` ✅
 5. Select: **"Only on this account"**
 6. Click **"Create GitHub App"**
 7. **Copy the App ID** shown at the top
@@ -73,19 +75,41 @@ cat copilot-metrics-*.txt
 
 ---
 
+## ✨ What's New (February 2026 API)
+
+This collector uses the **latest GitHub Copilot Metrics API** with enhanced data:
+
+- ✅ **Model usage metrics** (GPT-4, Claude, etc.)
+- ✅ **Per-user engagement data**
+- ✅ **Enhanced IDE/Agent breakdown**
+- ✅ **Language-specific metrics**
+- ✅ **Up to 1 year of history** (vs 28 days with old API)
+- ✅ **NDJSON format** for easier processing
+- ✅ **Future-proof** (old API shut down April 2026)
+
+---
+
 ## 📊 What You Get
 
-Each run creates 3 files:
-- **`.json`** - Raw data
-- **`.txt`** - Human-readable report
-- **`.csv`** - Excel/Google Sheets
+Each run creates JSON output with comprehensive metrics:
+- **User engagement data** - Who's using Copilot and how much
+- **Code completion stats** - Suggestions, acceptances, rates
+- **Model usage** - Which AI models are being used
+- **IDE/Editor breakdown** - VS Code, JetBrains, etc.
+- **Language statistics** - Python, JavaScript, TypeScript, etc.
 
 Example:
 ```
 Active Users: 247
-Suggestions: 45,234
-Acceptances: 32,891
+Total Code Suggestions: 45,234
+Total Acceptances: 32,891
 Acceptance Rate: 72.71%
+
+✨ Enhanced metrics including:
+  - Model usage (GPT-4, Claude, etc.)
+  - Per-user engagement data
+  - IDE/Agent breakdown
+  - Language-specific metrics
 ```
 
 ---
@@ -99,12 +123,13 @@ Acceptance Rate: 72.71%
 # Specific date
 ./capture-org-metrics.sh 2024-12-15
 
-# Date range
-./capture-org-metrics.sh 2024-12-01 2024-12-15
-
-# Last 4 weeks with trends
-./capture-date-range-metrics.sh --period weekly --weeks 4 --show-trends
+# Multiple dates (run multiple times)
+for date in 2024-12-{01..15}; do
+  ./capture-org-metrics.sh $date
+done
 ```
+
+**Note:** The new API returns data for single days. For date ranges, run the script multiple times or use the 28-day endpoint (coming soon to this script).
 
 ---
 
@@ -119,12 +144,12 @@ crontab -e
 
 ## 🛠️ Available Scripts
 
-| Script | Use Case |
-|--------|----------|
-| `capture-org-metrics.sh` | Organization metrics |
-| `capture-enterprise-metrics.sh` | Enterprise-wide |
-| `capture-team-metrics.sh` | Team-specific |
-| `capture-date-range-metrics.sh` | Trends |
+| Script | Use Case | API Status |
+|--------|----------|------------|
+| `capture-org-metrics.sh` | Organization metrics | ✅ Updated to 2026 API |
+| `capture-enterprise-metrics.sh` | Enterprise-wide | ⏳ Being updated |
+| `capture-team-metrics.sh` | Team-specific | ⏳ Being updated |
+| `capture-date-range-metrics.sh` | Trends | ⏳ Being updated |
 
 ---
 
@@ -134,8 +159,8 @@ crontab -e
 |---------|----------|
 | "Bad credentials" | Check `GITHUB_APP_ID` and `GITHUB_INSTALLATION_ID` in `.env` |
 | "404 Not Found" | Check `GITHUB_ORG` spelling |
-| "403 Forbidden" | Verify app has "Copilot Business Metrics: Read-only" permission |
-| "No data" | Use yesterday or earlier |
+| "403 Forbidden" | Verify app has "Organization Copilot metrics: Read-only" permission (NEW permission name!) |
+| "No download links" | Ensure metrics are enabled in org settings |
 | "jq not found" | Run: `brew install jq` |
 
 Check config:
@@ -145,4 +170,21 @@ source .env && echo "App: $GITHUB_APP_ID | Org: $GITHUB_ORG"
 
 ---
 
-**That's it! 🚀** | More info: https://docs.github.com/en/rest/copilot/copilot-usage
+## 🔐 Required Permissions (Updated)
+
+Your GitHub App needs:
+- **Organization Copilot metrics:** Read-only ✅ (NEW - different from old "Copilot Business Metrics")
+
+This is the new permission name as of February 2026.
+
+---
+
+## 📚 API Documentation
+
+- **Latest API:** https://docs.github.com/rest/copilot/copilot-usage-metrics
+- **Migration Guide:** See UPDATE_NOTICE.md
+- **Old API (deprecated):** Being shut down April 2, 2026
+
+---
+
+**That's it! 🚀** | Updated: February 13, 2026 | Using latest GitHub API
