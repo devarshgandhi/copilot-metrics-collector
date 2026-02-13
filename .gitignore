@@ -1,0 +1,33 @@
+# Sensitive files
+*.pem
+*private-key*
+.env
+.env.*
+!.env.example
+
+# Output files
+*.json
+*.csv
+*.txt
+metrics-output/
+logs/
+
+# macOS
+.DS_Store
+._*
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.bak
+*.backup
