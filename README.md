@@ -2,7 +2,7 @@
 
 **Collect GitHub Copilot usage metrics for your organization in 10 minutes.**
 
-✨ **Updated February 2026** - Now using the latest GitHub Copilot Metrics API with enhanced data!
+✨ **Updated February 2026** - Using latest GitHub Copilot Metrics API
 
 ---
 
@@ -62,34 +62,66 @@ GITHUB_ORG=your-org-name              # Your GitHub org name
 
 ```bash
 source .env
-./capture-org-metrics.sh
+./capture-28day-metrics.sh
 ```
 
 ### 5. View Results
 
 ```bash
-cat copilot-metrics-*.txt
+cat copilot-28day-*.txt
 ```
 
 **Done!** 🎉
 
 ---
 
-## ✨ What's New (February 2026 API)
+## 📊 Available Scripts
 
-This collector uses the **latest GitHub Copilot Metrics API** with enhanced data:
-
-- ✅ **Model usage metrics** (GPT-4, Claude, etc.)
-- ✅ **Per-user engagement data**
-- ✅ **Enhanced IDE/Agent breakdown**
-- ✅ **Language-specific metrics**
-- ✅ **Up to 1 year of history** (vs 28 days with old API)
-- ✅ **NDJSON format** for easier processing
-- ✅ **Future-proof** (old API shut down April 2026)
+| Script | Use Case | When to Use |
+|--------|----------|-------------|
+| **`capture-28day-metrics.sh`** | Last 28 days summary | **Recommended** - Complete monthly overview |
+| `capture-org-metrics.sh` | Single day | Specific date analysis |
+| `capture-enterprise-metrics.sh` | Enterprise-wide | Multiple orgs |
+| `capture-team-metrics.sh` | Team-specific | Filter by team |
+| `capture-date-range-metrics.sh` | Custom trends | Historical analysis |
 
 ---
 
-## 📊 What You Get
+## 🔄 Usage Examples
+
+### Get 28-Day Summary (Recommended)
+```bash
+source .env
+./capture-28day-metrics.sh
+```
+
+### Single Day Metrics
+```bash
+source .env
+./capture-org-metrics.sh 2024-12-15
+```
+
+### Enterprise Metrics
+```bash
+source .env
+ENTERPRISE=true ./capture-28day-metrics.sh
+```
+
+### Team Metrics
+```bash
+source .env
+./capture-team-metrics.sh my-team-slug
+```
+
+### Date Range Trends
+```bash
+source .env
+./capture-date-range-metrics.sh 2024-12-01 2024-12-15
+```
+
+---
+
+## ✨ What You Get
 
 Each run creates JSON output with comprehensive metrics:
 - **User engagement data** - Who's using Copilot and how much
@@ -98,38 +130,18 @@ Each run creates JSON output with comprehensive metrics:
 - **IDE/Editor breakdown** - VS Code, JetBrains, etc.
 - **Language statistics** - Python, JavaScript, TypeScript, etc.
 
-Example:
+Example output:
 ```
-Active Users: 247
-Total Code Suggestions: 45,234
-Total Acceptances: 32,891
+Total Active Users: 247
+Total Code Acceptances: 32,891
+Total Suggestions: 45,234
 Acceptance Rate: 72.71%
 
-✨ Enhanced metrics including:
-  - Model usage (GPT-4, Claude, etc.)
-  - Per-user engagement data
-  - IDE/Agent breakdown
-  - Language-specific metrics
+✨ 28-day report includes:
+  - Complete 28-day user activity
+  - Model usage trends
+  - Daily engagement patterns
 ```
-
----
-
-## 🔄 More Examples
-
-```bash
-# Yesterday's metrics
-./capture-org-metrics.sh
-
-# Specific date
-./capture-org-metrics.sh 2024-12-15
-
-# Multiple dates (run multiple times)
-for date in 2024-12-{01..15}; do
-  ./capture-org-metrics.sh $date
-done
-```
-
-**Note:** The new API returns data for single days. For date ranges, run the script multiple times or use the 28-day endpoint (coming soon to this script).
 
 ---
 
@@ -137,19 +149,8 @@ done
 
 ```bash
 crontab -e
-# Add: 0 2 * * * cd ~/Git/copilot-metrics-collector && source .env && ./capture-org-metrics.sh >> logs/daily.log 2>&1
+# Add: 0 2 * * * cd ~/Git/copilot-metrics-collector && source .env && ./capture-28day-metrics.sh >> logs/daily.log 2>&1
 ```
-
----
-
-## 🛠️ Available Scripts
-
-| Script | Use Case | API Status |
-|--------|----------|------------|
-| `capture-org-metrics.sh` | Organization metrics | ✅ Updated to 2026 API |
-| `capture-enterprise-metrics.sh` | Enterprise-wide | ⏳ Being updated |
-| `capture-team-metrics.sh` | Team-specific | ⏳ Being updated |
-| `capture-date-range-metrics.sh` | Trends | ⏳ Being updated |
 
 ---
 
@@ -159,7 +160,7 @@ crontab -e
 |---------|----------|
 | "Bad credentials" | Check `GITHUB_APP_ID` and `GITHUB_INSTALLATION_ID` in `.env` |
 | "404 Not Found" | Check `GITHUB_ORG` spelling |
-| "403 Forbidden" | Verify app has "Organization Copilot metrics: Read-only" permission (NEW permission name!) |
+| "403 Forbidden" | Verify app has "Organization Copilot metrics: Read-only" permission |
 | "No download links" | Ensure metrics are enabled in org settings |
 | "jq not found" | Run: `brew install jq` |
 
@@ -170,21 +171,18 @@ source .env && echo "App: $GITHUB_APP_ID | Org: $GITHUB_ORG"
 
 ---
 
-## 🔐 Required Permissions (Updated)
+## 🔐 Required Permissions
 
 Your GitHub App needs:
-- **Organization Copilot metrics:** Read-only ✅ (NEW - different from old "Copilot Business Metrics")
-
-This is the new permission name as of February 2026.
+- **Organization Copilot metrics:** Read-only ✅
 
 ---
 
 ## 📚 API Documentation
 
 - **Latest API:** https://docs.github.com/rest/copilot/copilot-usage-metrics
-- **Migration Guide:** See UPDATE_NOTICE.md
-- **Old API (deprecated):** Being shut down April 2, 2026
+- **API Version:** 2022-11-28
 
 ---
 
-**That's it! 🚀** | Updated: February 13, 2026 | Using latest GitHub API
+**Simple. Fast. Up-to-date.** 🚀 | Updated: February 13, 2026
