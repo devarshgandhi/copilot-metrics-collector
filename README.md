@@ -1,12 +1,20 @@
 # GitHub Copilot Metrics Collector
 
-**Collect GitHub Copilot usage metrics for your organization in 10 minutes.**
+**Collect GitHub Copilot usage metrics for your organization or enterprise in 10 minutes.**
 
 ✨ **Updated February 2026** - Using latest GitHub Copilot Metrics API
 
 ---
 
 ## 🚀 Quick Setup
+
+Choose your setup based on your GitHub structure:
+- **Organization Setup** - Single GitHub organization
+- **Enterprise Setup** - Multiple organizations under an enterprise
+
+---
+
+## 📋 Organization Setup
 
 ### 1. Install jq (30 seconds)
 
@@ -75,81 +83,184 @@ cat copilot-28day-*.txt
 
 ---
 
+## 🏢 Enterprise Setup
+
+For enterprises with multiple organizations:
+
+### 1. Install jq (30 seconds)
+
+Same as organization setup above.
+
+### 2. Create GitHub App at Enterprise Level (5 minutes)
+
+1. Go to: `https://github.com/enterprises/YOUR_ENTERPRISE/settings/apps`
+2. Click **"New GitHub App"**
+3. Fill in:
+   - **Name:** `copilot-metrics-enterprise`
+   - **Homepage URL:** `https://github.com/enterprises/YOUR_ENTERPRISE`
+   - **Webhook:** UNCHECK "Active"
+4. Under **"Enterprise permissions"** set:
+   - **Enterprise Copilot metrics:** `Read-only` ✅
+5. Click **"Create GitHub App"**
+6. **Copy the App ID** shown at the top
+7. Scroll to **"Private keys"** → Click **"Generate a private key"** (downloads a .pem file)
+8. Click **"Install App"** → Install on your enterprise
+9. **Copy the Installation ID** from the URL
+
+### 3. Configure for Enterprise (2 minutes)
+
+```bash
+cd ~/Git/copilot-metrics-collector
+./setup.sh
+
+# Move private key
+mv ~/Downloads/*.private-key.pem ./github-app-private-key.pem
+chmod 600 ./github-app-private-key.pem
+
+# Edit config
+vim .env
+```
+
+**Edit these values in `.env` for enterprise:**
+
+```bash
+GITHUB_APP_ID=123456                       # Your Enterprise App ID
+GITHUB_INSTALLATION_ID=78901234            # Your Enterprise Installation ID
+GITHUB_PRIVATE_KEY_PATH=./github-app-private-key.pem
+GITHUB_ENTERPRISE=your-enterprise-slug     # Your enterprise slug
+```
+
+### 4. Run Enterprise Scripts (30 seconds)
+
+```bash
+source .env
+
+# Enterprise-wide 28-day summary
+ENTERPRISE=true ./capture-28day-metrics.sh
+
+# Enterprise user-level metrics (per-user breakdown across all orgs)
+./capture-enterprise-users.sh
+
+# Enterprise single-day aggregate
+./capture-enterprise-metrics.sh
+```
+
+### 5. View Enterprise Results
+
+```bash
+cat copilot-enterprise-*.txt
+```
+
+**Done!** 🎉
+
+---
+
 ## 📊 Available Scripts
 
-| Script | Use Case | When to Use |
-|--------|----------|-------------|
-| **`capture-28day-metrics.sh`** | Last 28 days summary | **Recommended** - Complete monthly overview |
-| `capture-org-metrics.sh` | Single day | Specific date analysis |
-| `capture-enterprise-metrics.sh` | Enterprise-wide | Multiple orgs |
-| `capture-team-metrics.sh` | Team-specific | Filter by team |
-| `capture-date-range-metrics.sh` | Custom trends | Historical analysis |
+### Organization Scripts
+
+| Script | Use Case | Command |
+|--------|----------|---------|
+| **`capture-28day-metrics.sh`** | Last 28 days summary | `./capture-28day-metrics.sh` |
+| `capture-org-metrics.sh` | Single day | `./capture-org-metrics.sh 2026-02-15` |
+| `capture-team-metrics.sh` | Team-specific | `./capture-team-metrics.sh team-slug` |
+| `capture-date-range-metrics.sh` | Custom trends | `./capture-date-range-metrics.sh 2026-02-01 2026-02-15` |
+
+### Enterprise Scripts
+
+| Script | Use Case | Command |
+|--------|----------|---------|
+| **`capture-28day-metrics.sh`** | Enterprise 28-day | `ENTERPRISE=true ./capture-28day-metrics.sh` |
+| **`capture-enterprise-users.sh`** | Per-user breakdown | `./capture-enterprise-users.sh` |
+| `capture-enterprise-metrics.sh` | Single day aggregate | `./capture-enterprise-metrics.sh 2026-02-15` |
 
 ---
 
 ## 🔄 Usage Examples
 
-### Get 28-Day Summary (Recommended)
+### Organization Examples
 ```bash
 source .env
+
+# Get 28-day summary (Recommended)
 ./capture-28day-metrics.sh
+
+# Single day metrics
+./capture-org-metrics.sh 2026-02-15
+
+# Team metrics
+./capture-team-metrics.sh backend-team
+
+# Date range trends
+./capture-date-range-metrics.sh 2026-02-01 2026-02-15
 ```
 
-### Single Day Metrics
+### Enterprise Examples
 ```bash
 source .env
-./capture-org-metrics.sh 2024-12-15
-```
 
-### Enterprise Metrics
-```bash
-source .env
+# Enterprise 28-day summary (all orgs aggregated)
 ENTERPRISE=true ./capture-28day-metrics.sh
-```
 
-### Team Metrics
-```bash
-source .env
-./capture-team-metrics.sh my-team-slug
-```
+# Per-user metrics across entire enterprise
+./capture-enterprise-users.sh
 
-### Date Range Trends
-```bash
-source .env
-./capture-date-range-metrics.sh 2024-12-01 2024-12-15
+# Enterprise single day
+./capture-enterprise-metrics.sh 2026-02-15
+
+# With specific date
+./capture-enterprise-users.sh 2026-02-12
 ```
 
 ---
 
 ## ✨ What You Get
 
-Each run creates JSON output with comprehensive metrics:
-- **User engagement data** - Who's using Copilot and how much
+### Organization Level
+- **Org-wide metrics** - Total usage across organization
+- **Team breakdowns** - Filter by specific teams
+- **Daily/Monthly trends** - Track adoption over time
+
+### Enterprise Level
+- **Cross-org aggregation** - All organizations combined
+- **Per-user metrics** - Individual productivity across all orgs
+- **Enterprise trends** - Company-wide Copilot adoption
+
+### All Levels Include
+- **User engagement** - Who's using Copilot and how much
 - **Code completion stats** - Suggestions, acceptances, rates
-- **Model usage** - Which AI models are being used
+- **Model usage** - Which AI models (GPT-4, Claude, etc.)
 - **IDE/Editor breakdown** - VS Code, JetBrains, etc.
 - **Language statistics** - Python, JavaScript, TypeScript, etc.
 
 Example output:
 ```
 Total Active Users: 247
-Total Code Acceptances: 32,891
-Total Suggestions: 45,234
-Acceptance Rate: 72.71%
+Total Code Acceptances: 89,456
+Total Suggestions: 123,789
+Acceptance Rate: 72.27%
 
-✨ 28-day report includes:
-  - Complete 28-day user activity
-  - Model usage trends
-  - Daily engagement patterns
+✨ Enhanced metrics including:
+  - Model usage (GPT-4, Claude, etc.)
+  - Per-user engagement data
+  - IDE/Agent breakdown
+  - Language-specific metrics
 ```
 
 ---
 
 ## 🤖 Automate Daily
 
+### Organization
 ```bash
 crontab -e
 # Add: 0 2 * * * cd ~/Git/copilot-metrics-collector && source .env && ./capture-28day-metrics.sh >> logs/daily.log 2>&1
+```
+
+### Enterprise
+```bash
+crontab -e
+# Add: 0 2 * * * cd ~/Git/copilot-metrics-collector && source .env && ENTERPRISE=true ./capture-28day-metrics.sh >> logs/daily.log 2>&1
 ```
 
 ---
@@ -159,30 +270,58 @@ crontab -e
 | Problem | Solution |
 |---------|----------|
 | "Bad credentials" | Check `GITHUB_APP_ID` and `GITHUB_INSTALLATION_ID` in `.env` |
-| "404 Not Found" | Check `GITHUB_ORG` spelling |
-| "403 Forbidden" | Verify app has "Organization Copilot metrics: Read-only" permission |
-| "No download links" | Ensure metrics are enabled in org settings |
+| "404 Not Found" | Check `GITHUB_ORG` or `GITHUB_ENTERPRISE` spelling |
+| "403 Forbidden" | Verify app has correct permissions (see below) |
+| "No download links" | Ensure metrics are enabled in settings |
 | "jq not found" | Run: `brew install jq` |
 
 Check config:
 ```bash
+# Organization
 source .env && echo "App: $GITHUB_APP_ID | Org: $GITHUB_ORG"
+
+# Enterprise
+source .env && echo "App: $GITHUB_APP_ID | Enterprise: $GITHUB_ENTERPRISE"
 ```
 
 ---
 
 ## 🔐 Required Permissions
 
-Your GitHub App needs:
+### Organization GitHub App
 - **Organization Copilot metrics:** Read-only ✅
 
----
+### Enterprise GitHub App
+- **Enterprise Copilot metrics:** Read-only ✅
 
-## 📚 API Documentation
-
-- **Latest API:** https://docs.github.com/rest/copilot/copilot-usage-metrics
-- **API Version:** 2022-11-28
+*Note: These are the new permission names as of February 2026.*
 
 ---
 
-**Simple. Fast. Up-to-date.** 🚀 | Updated: February 13, 2026
+## 📚 API Endpoints Used
+
+### Organization
+- `/orgs/{org}/copilot/metrics/reports/organization-28-day/latest`
+- `/orgs/{org}/copilot/metrics/reports/organization-1-day?day=YYYY-MM-DD`
+
+### Enterprise
+- `/enterprises/{ent}/copilot/metrics/reports/enterprise-28-day/latest`
+- `/enterprises/{ent}/copilot/metrics/reports/enterprise-1-day?day=YYYY-MM-DD`
+- `/enterprises/{ent}/copilot/metrics/reports/users-1-day?day=YYYY-MM-DD` ⭐ Per-user
+
+**Documentation:** https://docs.github.com/rest/copilot/copilot-usage-metrics
+
+---
+
+## 🎯 Which Setup Should I Use?
+
+| Your Structure | Setup Type | Scripts to Use |
+|----------------|------------|----------------|
+| Single GitHub org | **Organization** | `capture-org-metrics.sh`, `capture-28day-metrics.sh` |
+| Multiple orgs under enterprise | **Enterprise** | `capture-enterprise-*.sh`, `ENTERPRISE=true capture-28day-metrics.sh` |
+| Want per-user data across enterprise | **Enterprise** | `capture-enterprise-users.sh` ⭐ |
+| Want team-specific in one org | **Organization** | `capture-team-metrics.sh` |
+
+---
+
+**Simple. Fast. Complete.** 🚀 | Updated: February 17, 2026
