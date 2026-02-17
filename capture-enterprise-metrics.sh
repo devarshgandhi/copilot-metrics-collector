@@ -3,26 +3,24 @@
 ################################################################################
 # GitHub Copilot Enterprise Metrics Capture Script (2026 API)
 # 
-# Description: Captures enterprise-wide GitHub Copilot usage metrics using latest API
+# Description: Captures enterprise-wide GitHub Copilot usage metrics
 # Requirements: curl, jq, openssl
-# API Version: 2022-11-28 (Latest endpoints from Feb 2026)
+# API Version: 2022-11-28
+#
+# Output Formats:
+#   - NDJSON: Raw per-user data from API
+#   - CSV: Spreadsheet-compatible format
+#   - TXT: Human-readable summary
 # 
 # Usage:
 #   ./capture-enterprise-metrics.sh                    # Yesterday's metrics
 #   ./capture-enterprise-metrics.sh 2024-12-15         # Specific date
-#
-# Environment Variables:
-#   GITHUB_APP_ID              - Your GitHub App ID
-#   GITHUB_INSTALLATION_ID     - Your GitHub App Installation ID
-#   GITHUB_PRIVATE_KEY_PATH    - Path to your GitHub App private key (.pem)
-#   GITHUB_ENTERPRISE          - Your GitHub Enterprise slug
 ################################################################################
 
 set -e
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
@@ -31,7 +29,6 @@ OUTPUT_DIR="${OUTPUT_DIR:-.}"
 
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 check_dependencies() {
@@ -39,11 +36,7 @@ check_dependencies() {
     for cmd in curl jq openssl base64 bc; do
         command -v $cmd &> /dev/null || missing_deps+=($cmd)
     done
-    
-    if [ ${#missing_deps[@]} -ne 0 ]; then
-        log_error "Missing dependencies: ${missing_deps[*]}"
-        exit 1
-    fi
+    [ ${#missing_deps[@]} -ne 0 ] && { log_error "Missing: ${missing_deps[*]}"; exit 1; }
 }
 
 check_env_vars() {
@@ -53,12 +46,8 @@ check_env_vars() {
     [ -z "$GITHUB_PRIVATE_KEY_PATH" ] && missing_vars+=("GITHUB_PRIVATE_KEY_PATH")
     [ -z "$GITHUB_ENTERPRISE" ] && missing_vars+=("GITHUB_ENTERPRISE")
     
-    if [ ${#missing_vars[@]} -ne 0 ]; then
-        log_error "Missing environment variables: ${missing_vars[*]}"
-        exit 1
-    fi
-    
-    [ ! -f "$GITHUB_PRIVATE_KEY_PATH" ] && { log_error "Private key not found: $GITHUB_PRIVATE_KEY_PATH"; exit 1; }
+    [ ${#missing_vars[@]} -ne 0 ] && { log_error "Missing: ${missing_vars[*]}"; exit 1; }
+    [ ! -f "$GITHUB_PRIVATE_KEY_PATH" ] && { log_error "Private key not found"; exit 1; }
 }
 
 generate_jwt() {
@@ -81,14 +70,14 @@ get_installation_token() {
     local jwt=$1
     local installation_id=$2
     
-    log_info "Obtaining installation access token..."
+    log_info "Authenticating..."
     local response=$(curl -s -X POST \
         -H "Accept: application/vnd.github+json" \
         -H "Authorization: Bearer $jwt" \
         "${GITHUB_API_URL}/app/installations/${installation_id}/access_tokens")
     
     local token=$(echo "$response" | jq -r '.token')
-    [ "$token" == "null" ] || [ -z "$token" ] && { log_error "Failed to get token"; echo "$response" | jq '.'; exit 1; }
+    [ "$token" == "null" ] && { log_error "Auth failed"; exit 1; }
     echo "$token"
 }
 
@@ -101,7 +90,6 @@ fetch_enterprise_metrics() {
     
     log_info "Fetching Enterprise Copilot metrics: $enterprise"
     log_info "Date: $day"
-    log_info "Using NEW API: /enterprises/{enterprise}/copilot/metrics/reports/enterprise-1-day"
     
     local response=$(curl -s -X GET \
         -H "Accept: application/vnd.github+json" \
@@ -110,10 +98,10 @@ fetch_enterprise_metrics() {
         "$url")
     
     local error_message=$(echo "$response" | jq -r '.message // empty')
-    [ -n "$error_message" ] && { log_error "API Error: $error_message"; echo "$response" | jq '.'; exit 1; }
+    [ -n "$error_message" ] && { log_error "API Error: $error_message"; exit 1; }
     
-    local download_links=$(echo "$response" | jq -r '.download_links[]' 2>/dev/null)
-    [ -z "$download_links" ] && { log_error "No download links found"; echo "$response" | jq '.'; exit 1; }
+    local download_links=$(echo "$response" | jq -r '.download_links[]?' 2>/dev/null)
+    [ -z "$download_links" ] && { log_error "No download links found"; exit 1; }
     
     local combined_data=""
     for link in $download_links; do
@@ -122,6 +110,29 @@ fetch_enterprise_metrics() {
     done
     
     echo "$combined_data"
+}
+
+generate_csv() {
+    local metrics=$1
+    local csv_file=$2
+    
+    log_info "Generating CSV output..."
+    
+    echo "date,user_login,total_code_acceptances,total_code_suggestions,acceptance_rate,total_lines_accepted,total_lines_suggested,total_chats,copilot_ide_chat,copilot_dotcom_chat" > "$csv_file"
+    
+    echo "$metrics" | jq -r '
+        .date as $date |
+        .user_login as $user |
+        (.copilot_ide_code_completions.total_code_acceptances // 0) as $accept |
+        (.copilot_ide_code_completions.total_code_suggestions // 0) as $suggest |
+        (.copilot_ide_code_completions.total_code_lines_accepted // 0) as $lines_accept |
+        (.copilot_ide_code_completions.total_code_lines_suggested // 0) as $lines_suggest |
+        ((.copilot_ide_chat.total_chats // 0) + (.copilot_dotcom_chat.total_chats // 0)) as $total_chats |
+        (.copilot_ide_chat.total_chats // 0) as $ide_chat |
+        (.copilot_dotcom_chat.total_chats // 0) as $dotcom_chat |
+        (if $suggest > 0 then ($accept * 100 / $suggest) else 0 end) as $rate |
+        "\($date),\($user),\($accept),\($suggest),\($rate | floor),\($lines_accept),\($lines_suggest),\($total_chats),\($ide_chat),\($dotcom_chat)"
+    ' >> "$csv_file"
 }
 
 display_enterprise_metrics() {
@@ -138,7 +149,7 @@ display_enterprise_metrics() {
     echo "----------------------------------------" | tee -a "$output_file"
     echo "" | tee -a "$output_file"
     
-    local total_suggestions=$(echo "$metrics" | jq -s '[.[] | .copilot_ide_code_completions.total_engaged_users // 0] | add')
+    local total_suggestions=$(echo "$metrics" | jq -s '[.[] | .copilot_ide_code_completions.total_code_suggestions // 0] | add')
     local total_acceptances=$(echo "$metrics" | jq -s '[.[] | .copilot_ide_code_completions.total_code_acceptances // 0] | add')
     local active_users=$(echo "$metrics" | jq -s '[.[] | select(.copilot_ide_code_completions.total_code_acceptances > 0)] | length')
     
@@ -151,11 +162,6 @@ display_enterprise_metrics() {
         echo "Acceptance Rate: ${acceptance_rate}%" | tee -a "$output_file"
     fi
     
-    echo "" | tee -a "$output_file"
-    echo "✨ Enterprise API provides:" | tee -a "$output_file"
-    echo "  - Cross-organization aggregation" | tee -a "$output_file"
-    echo "  - Enterprise-wide user engagement" | tee -a "$output_file"
-    echo "  - Model usage across all orgs" | tee -a "$output_file"
     echo "" | tee -a "$output_file"
     echo "========================================" | tee -a "$output_file"
 }
@@ -183,14 +189,26 @@ main() {
     
     METRICS=$(fetch_enterprise_metrics "$TOKEN" "$GITHUB_ENTERPRISE" "$target_date")
     
-    local json_output="${OUTPUT_DIR}/copilot-enterprise-metrics-${GITHUB_ENTERPRISE}-${target_date}.json"
-    local text_output="${OUTPUT_DIR}/copilot-enterprise-metrics-${GITHUB_ENTERPRISE}-${target_date}.txt"
+    local base_name="${OUTPUT_DIR}/copilot-enterprise-metrics-${GITHUB_ENTERPRISE}-${target_date}"
+    local ndjson_output="${base_name}.ndjson"
+    local csv_output="${base_name}.csv"
+    local text_output="${base_name}.txt"
     
-    echo "$METRICS" > "$json_output"
-    log_success "Saved: $json_output"
+    echo "$METRICS" > "$ndjson_output"
+    log_success "NDJSON saved: $ndjson_output"
+    
+    generate_csv "$METRICS" "$csv_output"
+    log_success "CSV saved: $csv_output"
     
     display_enterprise_metrics "$METRICS" "$text_output" "$target_date"
+    log_success "Text summary saved: $text_output"
+    
+    echo ""
     log_success "Enterprise metrics collection completed!"
+    log_info "Output formats:"
+    log_info "  NDJSON: $ndjson_output (raw API data)"
+    log_info "  CSV:    $csv_output (spreadsheet import)"
+    log_info "  TXT:    $text_output (human readable)"
 }
 
 main "$@"

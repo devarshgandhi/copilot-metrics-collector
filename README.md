@@ -216,6 +216,32 @@ ENTERPRISE=true ./capture-28day-metrics.sh
 
 ## ✨ What You Get
 
+### Output Formats
+
+Every script generates **3 output files**:
+
+1. **NDJSON** (`.ndjson`) - Raw per-user data from GitHub API
+   - Newline-delimited JSON
+   - Complete detailed metrics for each user
+   - Perfect for data processing pipelines
+
+2. **CSV** (`.csv`) - Spreadsheet-compatible format
+   - Import into Excel, Google Sheets, or analytics tools
+   - Columns: date, user_login, acceptances, suggestions, rates, lines, chats
+   - Easy filtering and pivot tables
+
+3. **TXT** (`.txt`) - Human-readable summary
+   - Quick overview of key metrics
+   - Formatted for terminal or reports
+   - No tools required to read
+
+**Example output files:**
+```
+copilot-metrics-acme-corp-2026-02-15.ndjson  ← Raw API data
+copilot-metrics-acme-corp-2026-02-15.csv     ← Spreadsheet
+copilot-metrics-acme-corp-2026-02-15.txt     ← Summary
+```
+
 ### Organization Level
 - **Org-wide metrics** - Total usage across organization
 - **Team breakdowns** - Filter by specific teams
@@ -233,18 +259,20 @@ ENTERPRISE=true ./capture-28day-metrics.sh
 - **IDE/Editor breakdown** - VS Code, JetBrains, etc.
 - **Language statistics** - Python, JavaScript, TypeScript, etc.
 
-Example output:
+Example TXT output:
 ```
 Total Active Users: 247
 Total Code Acceptances: 89,456
 Total Suggestions: 123,789
 Acceptance Rate: 72.27%
+```
 
-✨ Enhanced metrics including:
-  - Model usage (GPT-4, Claude, etc.)
-  - Per-user engagement data
-  - IDE/Agent breakdown
-  - Language-specific metrics
+Example CSV format:
+```csv
+date,user_login,total_code_acceptances,total_code_suggestions,acceptance_rate,total_lines_accepted,total_lines_suggested,total_chats,copilot_ide_chat,copilot_dotcom_chat
+2026-02-15,alice,145,200,72,287,412,23,23,0
+2026-02-15,bob,234,310,75,456,598,57,45,12
+2026-02-15,charlie,89,125,71,178,243,12,12,0
 ```
 
 ---
